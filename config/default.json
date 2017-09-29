@@ -1,0 +1,28 @@
+{
+    "mailSettings": {
+        "smtp": {
+            "host": "smtp.example.com",
+            "port": 587,
+            "secure": false,
+            "auth": {
+                "user": "user",
+                "pass": "password"
+            }
+        },
+        "from": "エアコン通知 <notify@example.com>",
+        "to": "recipient@example.com"
+    },
+    "targetTemperature": {
+        "cooling": "25.0",
+        "heating": "20.0"
+    },
+    "temperatureThreshold": {
+        "high": 28.0,
+        "low": 18.0
+    },
+    "watchSettings": {
+        "interval": 600000,
+        "stablizedInterval": 3600000
+    },
+    "host": "192.168.11.2"
+}
