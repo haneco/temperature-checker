@@ -1,14 +1,15 @@
 'use strict';
 
+const http = require('http');
 const Requester = require('./lib/Requester');
 const MailSender = require('./lib/MailSender');
 const Aircon = require('./lib/Aircon');
-const TemperatureChekcer = require('./lib/TemperatureChekcer');
+const SensorChecker = require('./lib/SensorChecker');
 const config = require('config');
 
 const aircon = new Aircon(config.host);
-const tempChekcer = new TemperatureChekcer(aircon, config.watchSettings);
-tempChekcer.on('change', (temperature) => {    
+const sensorChecker = new SensorChecker(aircon, config.watchSettings);
+sensorChecker.on('change', (temperature) => {    
     const highThreshold = config.temperatureThreshold.high;
     const lowThreshold = config.temperatureThreshold.low;
 
@@ -27,7 +28,36 @@ tempChekcer.on('change', (temperature) => {
     }
 });
 
-tempChekcer.on('stabilize', (temperature) => {    
+sensorChecker.on('check', (sensorValues) => {    
+    // データベースが設定されている場合はデータを記録する
+    if (config.database !== undefined) {
+        const db = config.database;
+        const timestamp = +(new Date()) * 1000000;
+        const data = `temperature,location=${config.location} value=${sensorValues.htemp} ${timestamp}
+temperature,location=${config.locationOutdoor} value=${sensorValues.otemp} ${timestamp}`;
+        const options = {
+            host: db.host,
+            port: db.port,
+            path: `/write?db=${db.dbname}`,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        };
+        const request = http.request(options, (response) => {
+            response.setEncoding('utf8');
+            response.on('data', (responseData) => {
+                console.log(responseData);
+            });
+        });
+        request.on('error', (error) => {
+            console.log(error.message);
+        });
+        request.write(data);
+        request.end();
+    }
+});
+sensorChecker.on('stabilize', (temperature) => {    
     if (temperature >= 28 || temperature <= 18) {
         aircon.stopOperation()
             .then((result) => {
@@ -41,5 +71,5 @@ tempChekcer.on('stabilize', (temperature) => {
     }
 });
 
-tempChekcer.watch();
+sensorChecker.watch();
 
